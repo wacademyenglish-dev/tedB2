@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>WOLF LABS | The Executive Suite (B2)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Fonts: Inter (Clean, Modern, TED-style) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* === THE TED STAGE VARIABLES === */
+        :root {
+            --stage-black: #0A0A0A;
+            --panel-dark: #1A1A1A;
+            --ted-red: #E62B1E;
+            --ted-red-hover: #ff3b2e;
+            --text-main: #FFFFFF;
+            --text-muted: #9CA3AF;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--stage-black);
+            color: var(--text-main);
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+            background-image: radial-gradient(circle at 50% -20%, rgba(230, 43, 30, 0.05), transparent 60%);
+        }
+
+        /* HUD TOP */
+        #hud-top {
+            position: fixed; top: 0; left: 0; right: 0; padding: 20px 40px;
+            background: linear-gradient(to bottom, rgba(10,10,10,0.95) 0%, transparent);
+            z-index: 1000;
+        }
+
+        .hud-bar-container { width: 120px; height: 4px; background: rgba(255,255,255,0.1); overflow: hidden; }
+        .hud-bar-fill { height: 100%; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* CONTENT ARENA */
+        #mission-arena { height: 100vh; padding-bottom: 120px; }
+
+        /* PANELS */
+        .exec-card {
+            background-color: var(--panel-dark);
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 2.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        /* BUTTONS */
+        .btn-red {
+            background-color: var(--ted-red); color: white; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.05em; transition: all 0.2s ease; border: none; cursor: pointer;
+        }
+        .btn-red:active { transform: scale(0.96); }
+        .btn-red:hover { background-color: var(--ted-red-hover); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(230, 43, 30, 0.3); }
+
+        .btn-outline {
+            background-color: transparent; border: 2px solid white; color: white; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s ease; cursor: pointer;
+        }
+        .btn-outline:active { transform: scale(0.96); }
+        .btn-outline:hover { background-color: white; color: black; }
+
+        /* MCQ ROWS */
+        .drill-row {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+            transition: all 0.2s ease; cursor: pointer; display: flex; align-items: center; padding: 1.5rem;
+        }
+        .drill-row:hover:not(.locked-check) { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); transform: translateX(5px); }
+        .drill-row.correct { background: rgba(230, 43, 30, 0.1); border-color: var(--ted-red); color: var(--ted-red); }
+        .drill-row.wrong { background: rgba(255, 255, 255, 0.1); border-color: #555; color: #555; }
+
+        /* SLIDER (ACCOUNTABILITY MIRROR) */
+        input[type=range].exec-slider { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range].exec-slider:focus { outline: none; }
+        input[type=range].exec-slider::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(255,255,255,0.2); }
+        input[type=range].exec-slider::-webkit-slider-thumb { -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%; background: var(--ted-red); cursor: pointer; margin-top: -10px; transition: transform 0.2s; }
+        input[type=range].exec-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+        /* FLIP CARDS (VOCAB) */
+        .flip-card { perspective: 1000px; cursor: pointer; }
+        .flip-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
+        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+        .flip-card-front, .flip-card-back {
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem;
+            border: 1px solid rgba(255,255,255,0.1); background-color: var(--panel-dark);
+        }
+        .flip-card-front:hover { border-color: var(--ted-red); }
+        .flip-card-back { background-color: white; color: black; transform: rotateY(180deg); padding: 1.5rem; }
+
+        /* WORD BUILDER */
+        .wb-pill { background-color: var(--panel-dark); padding: 14px 28px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: inline-block; border: 1px solid rgba(255,255,255,0.1); }
+        .wb-pill:hover { background-color: var(--ted-red); color: white; transform: translateY(-3px); border-color: var(--ted-red); }
+        .wb-pill.used { opacity: 0; pointer-events: none; transform: scale(0.5); }
+        .wb-dropzone { min-height: 80px; border-bottom: 2px solid #333; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; padding: 15px; width: 100%; max-width: 800px; margin: 0 auto; }
+        .pill-in-zone { background-color: var(--ted-red); color: white; padding: 14px 28px; font-weight: 700; cursor: default; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        /* THE FIXER (EMAIL CORRECTION) */
+        .bug-word { color: var(--ted-red); border-bottom: 2px dashed var(--ted-red); cursor: pointer; font-weight: bold; transition: all 0.2s; padding: 0 4px; }
+        .bug-word:hover { background: rgba(230, 43, 30, 0.1); }
+        .bug-fixed { color: var(--ted-red); pointer-events: none; font-weight: bold; border-bottom: 2px solid var(--ted-red); }
+
+        /* SPEAKING STARTERS */
+        .starter-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out; opacity: 0; }
+        .starter-content.open { max-height: 300px; opacity: 1; margin-top: 1.5rem; }
+
+        /* FOOTER CONSOLE */
+        #nav-console {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 80px;
+            background: rgba(10, 10, 10, 0.95); border-top: 1px solid rgba(255,255,255,0.05);
+            display: flex; justify-content: space-between; align-items: center; px-8; z-index: 5000;
+        }
+
+        /* DRAWERS */
+        .drawer { background: #111; color: var(--text-main); border-left: 1px solid rgba(255,255,255,0.05); transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); z-index: 5100; box-shadow: -10px 0 40px rgba(0,0,0,0.9);}
+        .drawer.active { transform: translateX(0); }
+
+        .fade-in { animation: fadeIn 0.5s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+
+        #confetti-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 9999; }
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-2px, 0, 0); } 20%, 80% { transform: translate3d(3px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-5px, 0, 0); } 40%, 60% { transform: translate3d(5px, 0, 0); } }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden text-sm">
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- HUD SUPERIOR -->
+    <div id="hud-top" class="hidden justify-between items-center w-full">
+        <div class="flex items-center gap-10">
+            <div class="flex items-center gap-3">
+                <div class="w-3 h-3 rounded-full bg-[var(--ted-red)] animate-pulse"></div>
+                <span class="text-xs font-bold uppercase tracking-widest text-[#ccc]">Masterclass Series</span>
+            </div>
+        </div>
+        <div class="text-right flex items-center gap-6">
+            <button onclick="toggleTeacherHUD()" class="px-4 py-2 border border-white/20 text-[10px] uppercase tracking-widest text-white hover:bg-white hover:text-black transition-all font-bold">Facilitator</button>
+            <div>
+                <p class="text-lg font-black text-white tracking-tight leading-none uppercase">WOLF LABS</p>
+                <p class="text-[9px] font-bold text-[var(--ted-red)] tracking-widest uppercase mt-1">Level B1 / B2</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAINEL PRINCIPAL (CAPA) -->
+    <main id="dashboard" class="flex-grow flex flex-col items-center justify-center relative z-10">
+        <button onclick="toggleFullscreen()" class="absolute top-6 right-8 text-white/50 hover:text-white text-xl" title="Fullscreen"><i class="fas fa-expand"></i></button>
+        <div class="max-w-5xl w-full flex flex-col items-center text-center space-y-8 animate-in fade-in">
+            <div class="w-20 h-20 rounded-full bg-[var(--ted-red)] mb-4 shadow-[0_0_30px_rgba(230,43,30,0.4)]"></div>
+            
+            <div class="space-y-4">
+                <p class="text-[var(--text-muted)] font-bold text-xs tracking-[0.4em] uppercase">Executive Leadership Program</p>
+                <h1 class="text-6xl md:text-8xl font-black text-white leading-none tracking-tighter uppercase">THE <span class="text-[var(--ted-red)]">HOT SHOT</span> RULE</h1>
+                <p class="text-xl text-[var(--text-muted)] mt-4 max-w-2xl mx-auto leading-relaxed">How to cut through complacency and act your way into confidence.</p>
+            </div>
+            
+            <div class="flex flex-wrap justify-center gap-3 mt-8">
+                <span class="px-4 py-1.5 border border-white/20 text-[10px] font-bold uppercase tracking-widest text-white">Past Modals of Regret</span>
+                <span class="px-4 py-1.5 border border-white/20 text-[10px] font-bold uppercase tracking-widest text-white">Phrasal Verbs</span>
+                <span class="px-4 py-1.5 border border-[var(--ted-red)] text-[10px] font-bold uppercase tracking-widest text-[var(--ted-red)]">Accountability</span>
+            </div>
+            
+            <button onclick="startMission()" class="mt-12 btn-red px-14 py-5 text-lg">
+                Step onto the stage
+            </button>
+        </div>
+    </main>
+
+    <!-- ARENA DE CONTEÚDO DA LIÇÃO -->
+    <main id="mission-arena" class="hidden flex-grow flex-col overflow-hidden relative">
+        <div id="mission-content" class="flex-grow overflow-y-auto px-6 py-24 flex flex-col items-center w-full"></div>
+    </main>
+
+    <!-- CONSOLA DE NAVEGAÇÃO -->
+    <footer id="nav-console" class="hidden px-8">
+        <div class="flex items-center gap-6 w-1/4">
+            <button onclick="goHome()" class="text-[#666] hover:text-[var(--ted-red)] transition-colors"><i class="fas fa-power-off text-xl"></i></button>
+            <div class="flex flex-col">
+                <span id="console-title" class="text-[10px] font-bold text-white uppercase tracking-widest truncate">Stage</span>
+                <span id="console-type" class="text-[8px] font-bold text-[var(--ted-red)] uppercase tracking-widest">Type</span>
+            </div>
+        </div>
+        <div class="flex flex-col items-center gap-3 w-1/2">
+            <div class="flex items-center gap-12">
+                <button onclick="prevStep()" class="text-white/30 hover:text-white transition-colors"><i class="fas fa-chevron-left text-xl"></i></button>
+                <div class="w-64 h-1 bg-white/10 overflow-hidden">
+                    <div id="progress-bar" class="h-full bg-[var(--ted-red)] transition-all duration-300" style="width: 0%;"></div>
+                </div>
+                <button onclick="nextStep()" class="text-white hover:text-[var(--ted-red)] transition-colors"><i class="fas fa-chevron-right text-xl"></i></button>
+            </div>
+        </div>
+        <div class="flex items-center justify-end gap-6 w-1/4">
+            <button onclick="toggleWhiteboard()" class="text-[#666] hover:text-white transition-colors" title="Executive Notes"><i class="fas fa-pen-nib text-lg"></i></button>
+            <button onclick="toggleLessonNavigator()" class="text-[#666] hover:text-white transition-colors" title="Index"><i class="fas fa-bars text-lg"></i></button>
+        </div>
+    </footer>
+
+    <!-- GAVETAS LATERAIS (DRAWERS) -->
+    <aside id="whiteboard" class="fixed right-0 top-0 h-screen w-[450px] drawer flex flex-col pt-24 z-[5100]">
+        <div class="p-8 border-b border-white/5 flex justify-between items-center">
+            <h2 class="text-xl font-black text-[var(--text-main)] tracking-widest uppercase">Executive Notes</h2>
+            <button onclick="toggleWhiteboard()" class="text-white/50 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <div class="p-4 bg-black/20 flex flex-wrap gap-2 border-b border-white/5">
+            <button onclick="insertTag('[INSIGHT]')" class="text-[10px] border border-white/20 text-[#ccc] px-4 py-1.5 hover:bg-white hover:text-black transition-all font-bold uppercase tracking-widest">Insight</button>
+            <button onclick="insertTag('[ACTION]')" class="text-[10px] border border-[var(--ted-red)] text-[var(--ted-red)] px-4 py-1.5 hover:bg-[var(--ted-red)] hover:text-white transition-all font-bold uppercase tracking-widest">Action</button>
+        </div>
+        <textarea id="wb-text" class="flex-grow bg-transparent text-white p-8 resize-none focus:outline-none text-base leading-relaxed" placeholder="> Record your leadership reflections here..."></textarea>
+    </aside>
+
+    <aside id="lesson-navigator" class="fixed right-0 top-0 h-screen w-80 drawer flex flex-col pt-24 z-[5100]">
+        <div class="p-8 border-b border-white/5 text-white font-bold uppercase tracking-widest flex justify-between items-center text-sm">Index <button onclick="toggleLessonNavigator()"><i class="fas fa-times text-white/50 hover:text-white"></i></button></div>
+        <div id="nav-steps-list" class="flex-grow overflow-y-auto p-4 space-y-1 bg-[#111]"></div>
+    </aside>
+
+    <aside id="teacher-hud" class="fixed right-0 top-0 h-screen w-[350px] drawer flex flex-col pt-24 z-[5100]">
+        <div class="p-8 border-b border-white/5 flex justify-between items-center">
+            <h2 class="text-xl font-black text-[var(--ted-red)] tracking-widest uppercase">Facilitator</h2>
+            <button onclick="toggleTeacherHUD()"><i class="fas fa-times text-xl text-white/50 hover:text-white"></i></button>
+        </div>
+        <div class="flex-grow overflow-y-auto p-8 space-y-8 bg-[#111]">
+            <div class="bg-white/5 p-6 border border-white/10">
+                <p class="text-[10px] font-bold text-[var(--ted-red)] uppercase tracking-widest mb-3">Module Focus</p>
+                <p class="text-sm text-[#ccc] leading-relaxed">Level B2. Focus on leadership accountability. Ensure the student masters the pronunciation of <strong>Should've</strong>, <strong>Could've</strong>, and <strong>Would've</strong>.</p>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4">Send Feedback</p>
+                <div class="space-y-3">
+                    <button onclick="triggerPraise('POWERFUL!', 'Great insight.')" class="w-full py-4 bg-white/10 text-white border border-white/30 font-bold text-xs hover:bg-white hover:text-black transition-all tracking-widest uppercase">SEND: WHITE</button>
+                    <button onclick="triggerPraise('EXCELLENT!', 'Perfect Grammar.')" class="w-full py-4 bg-[var(--ted-red)]/10 text-[var(--ted-red)] border border-[var(--ted-red)]/50 font-bold text-xs hover:bg-[var(--ted-red)] hover:text-white transition-all tracking-widest uppercase">SEND: RED</button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Overlay de Elogio (Praise) -->
+    <div id="praise-overlay" class="fixed inset-0 z-[6000] flex items-center justify-center bg-black/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 p-4">
+        <div id="praise-card" class="bg-[var(--panel-dark)] p-16 text-center transform scale-50 transition-transform duration-500 border-t-8 border-[var(--ted-red)] shadow-[0_10px_40px_rgba(230,43,30,0.2)]">
+            <h2 id="praise-main" class="text-5xl md:text-7xl font-black tracking-tighter uppercase mb-4 text-white"></h2>
+            <p id="praise-sub" class="text-xl font-bold tracking-widest uppercase text-[var(--ted-red)] mt-6 opacity-80"></p>
+        </div>
+    </div>
+
+    <!-- SCRIPT DO MOTOR PRINCIPAL -->
+    <script>
+        // --- ESTADO DO SISTEMA ---
+        let state = { hp: 100, xp: 0, current: 0 };
+        const esc = (s) => s ? s.replace(/'/g, "\\'").replace(/"/g, "&quot;") : "";
+        
+        const TYPES = { GUIDE: "Intro", WARMUP: "Mirror", VOCAB: "Glossary", TAPE: "Talk", SCRIPT: "Quote", GRAMMAR: "Core", DRILL: "Fixer", BUILDER: "Builder", SPEAKING: "Confession", STAND: "Debate", WRAP: "Summary" };
+
+        function step(type, title, html) { return { type, title, html }; }
+
+        // --- TEMPLATES TEMÁTICOS (THE TED STAGE) ---
+        
+        const bGuide = (title, points) => step(TYPES.GUIDE, title, `
+            <div class="max-w-4xl mx-auto space-y-8 animate-in fade-in py-10">
+                <div class="exec-card border-t-4 border-[var(--ted-red)]">
+                    <p class="text-[var(--ted-red)] font-bold uppercase tracking-[0.2em] text-[10px] mb-6 flex items-center gap-3">
+                        <i class="fas fa-bullseye text-lg"></i> Executive Briefing
+                    </p>
+                    <h2 class="text-5xl md:text-6xl font-black text-white tracking-tighter leading-none mb-10 pb-8 border-b border-white/10">${title}</h2>
+                    <div class="space-y-6">
+                        ${points.map(p => `<p class="text-xl text-gray-300 font-medium leading-relaxed flex items-start gap-4"><div class="w-2 h-2 rounded-full bg-[var(--ted-red)] mt-2.5 shrink-0"></div> ${p}</p>`).join('')}
+                    </div>
+                </div>
+            </div>
+        `);
+
+        // The Accountability Mirror (Slider)
+        const bAccountabilityMirror = (title, prompt, optA, optB, starter) => step(TYPES.WARMUP, title, `
+            <div class="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center space-y-12 animate-in fade-in">
+                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.4em] mb-2 border border-white/10 px-4 py-1.5 rounded-full">Self Assessment</p>
+                <h2 class="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">${prompt}</h2>
+                
+                <div class="w-full max-w-3xl exec-card py-16 flex flex-col items-center mt-8">
+                    <div class="flex justify-between w-full px-8 mb-8 text-3xl">
+                        <span class="opacity-70 hover:opacity-100 transition-opacity" title="Make Excuses">🤷‍♂️</span>
+                        <span class="opacity-70 hover:opacity-100 transition-opacity" title="Take Responsibility">🎯</span>
+                    </div>
+                    <div class="w-full px-12">
+                        <input type="range" min="0" max="100" value="50" class="exec-slider">
+                    </div>
+                    <div class="flex justify-between w-full px-8 mt-8 text-xs font-bold text-gray-400 uppercase tracking-widest">
+                        <span>${optA}</span>
+                        <span>${optB}</span>
+                    </div>
+                </div>
+
+                <div class="w-full max-w-3xl p-8 bg-[#111] border-l-4 border-[var(--ted-red)] mt-8 text-left">
+                    <p class="text-[10px] font-bold text-[var(--ted-red)] uppercase tracking-widest mb-4">Discuss</p>
+                    <p class="text-xl font-bold text-white mb-2">Think of a time you made a mistake at work/school. How did you react?</p>
+                    <p class="text-sm font-bold text-gray-500 mt-4 italic">"${starter}"</p>
+                </div>
+            </div>
+        `);
+
+        // Executive Phrasal Verbs (Vocab with Back Questions)
+        function bExecVocab(title, words) {
+            const nodesHtml = words.map(w => `
+                <div class="flip-card h-[22rem] w-64" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front">
+                            <span class="font-bold text-white text-3xl mb-4 leading-tight">${w.word}</span>
+                            <span class="text-[10px] text-gray-500 mt-auto tracking-widest uppercase border border-gray-700 px-4 py-1.5 rounded-full">Reveal</span>
+                        </div>
+                        <div class="flip-card-back flex flex-col justify-between p-6">
+                            <div>
+                                <p class="text-[10px] font-bold uppercase tracking-widest mb-3 opacity-50 border-b border-black/20 pb-2 w-full text-center">Meaning</p>
+                                <p class="text-black text-lg leading-snug font-bold mb-3">${w.def}</p>
+                                <p class="text-black/70 text-sm italic font-medium">"${w.ex}"</p>
+                            </div>
+                            ${w.q ? `
+                            <div class="mt-auto w-full bg-black/5 p-4 rounded-lg border border-black/10 text-left">
+                                <p class="text-black font-bold text-[10px] uppercase tracking-widest mb-2">Discuss</p>
+                                <p class="text-black text-sm font-bold mb-2 leading-tight">${w.q}</p>
+                                <p class="text-black/70 text-xs italic">"${w.starter}"</p>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            return step(TYPES.VOCAB, title, `
+                <div class="max-w-7xl mx-auto flex flex-col items-center py-10 animate-in fade-in">
+                    <div class="text-center mb-16">
+                        <p class="text-[10px] font-bold text-[var(--ted-red)] uppercase tracking-[0.4em] mb-4 bg-[var(--ted-red)]/10 inline-block px-5 py-2">Glossary</p>
+                        <h2 class="text-5xl font-black text-white tracking-tight">${title}</h2>
+                    </div>
+                    <div class="flex flex-wrap justify-center gap-8">
+                        ${nodesHtml}
+                    </div>
+                </div>
+            `);
+        }
+
+        // The Tape (Video with Chunking)
+        const bAudioLog = (title, videoId, start, end, instruction) => {
+            let timeParams = '';
+            if(start) timeParams += `&start=${start}`;
+            if(end) timeParams += `&end=${end}`;
+            
+            return step(TYPES.TAPE, title, `
+            <div class="max-w-5xl mx-auto w-full flex flex-col items-center py-10 animate-in fade-in">
+                <div class="text-center mb-10">
+                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.4em] mb-4"><i class="fab fa-youtube mr-2"></i> The Stage</p>
+                    <h2 class="text-5xl font-black text-white tracking-tight">${title}</h2>
+                </div>
+                <div class="exec-card w-full max-w-4xl flex flex-col items-center p-10 border-t-4 border-[var(--ted-red)]">
+                    <p class="text-xl text-white font-medium mb-8 text-center max-w-2xl leading-relaxed">"${instruction}"</p>
+                    <div class="w-full aspect-video bg-black border border-white/10 shadow-2xl relative overflow-hidden">
+                        <iframe class="absolute inset-0 w-full h-full" src="https://www.youtube.com/embed/${videoId}?rel=0${timeParams}" frameborder="0" allowfullscreen></iframe>
+                    </div>
+                </div>
+            </div>
+            `);
+        };
+
+        // Social Quiz (MCQ)
+        const bSocialQuiz = (id, title, prompt, options, correctIdx, followup, starter) => step(TYPES.DRILL, title, `
+            <div class="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center space-y-12 animate-in fade-in">
+                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.4em] mb-2 border border-white/10 px-4 py-1.5 rounded-full">Comprehension</p>
+                <h2 class="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">${prompt}</h2>
+                
+                <div class="w-full max-w-2xl space-y-4" id="quiz-options-${id}">
+                    ${options.map((opt, i) => `
+                        <div class="drill-row locked-check" onclick="handleQuizTrial('${id}', this, ${i === correctIdx}, '${esc(followup)}', '${esc(starter)}')">
+                            <div class="w-10 h-10 border border-white/20 flex items-center justify-center text-sm font-bold text-gray-400 mr-6">${String.fromCharCode(65 + i)}</div>
+                            <span class="text-xl font-bold text-white text-left">${opt}</span>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div id="followup-box-${id}" class="hidden w-full max-w-2xl p-8 bg-[#111] border-l-4 border-[var(--ted-red)] mt-8 text-left">
+                    <p class="text-[10px] font-bold text-[var(--ted-red)] uppercase tracking-widest mb-4">Discuss</p>
+                    <p class="text-xl font-bold text-white mb-4">${followup}</p>
+                    ${starter ? `<p class="text-sm font-bold text-gray-500 italic">"${starter}"</p>` : ''}
+                </div>
+            </div>
+        `);
+
+        // Grammar Logic (Core)
+        const bLogicGrammar = (title, rule, examples, question, starter) => step(TYPES.GRAMMAR, title, `
+            <div class="max-w-5xl mx-auto space-y-10 animate-in fade-in py-10">
+                <div class="text-center space-y-4 mb-16">
+                    <p class="text-[10px] font-bold text-[var(--ted-red)] uppercase tracking-[0.4em] mb-4 border border-[var(--ted-red)]/30 inline-block px-5 py-2">Grammar Concept</p>
+                    <h2 class="text-5xl md:text-6xl font-black text-white tracking-tighter">${title}</h2>
+                </div>
+                <div class="exec-card mb-12 border-l-4 border-[var(--ted-red)]">
+                    <p class="text-2xl text-white font-medium leading-relaxed">${rule.replace(/\[(.*?)\]/g, '<span class="text-[var(--ted-red)] font-bold">$1</span>')}</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                    ${examples.map(ex => `
+                        <div class="bg-[#111] border border-white/5 p-10 shadow-lg text-center hover:border-white/20 transition-colors">
+                            <p class="text-[10px] font-bold uppercase text-gray-500 tracking-widest mb-6">${ex.context}</p>
+                            <p class="text-3xl font-bold text-white leading-tight">"${ex.text.replace(/\[(.*?)\]/g, '<span class="text-[var(--ted-red)]">$1</span>')}"</p>
+                        </div>
+                    `).join('')}
+                </div>
+                ${question ? `
+                <div class="w-full max-w-4xl mx-auto p-10 bg-[#1A1A1A] mt-8 flex flex-col text-left border border-white/5">
+                    <p class="text-[10px] font-bold text-white uppercase tracking-widest mb-4">Application Prompt</p>
+                    <p class="text-2xl font-bold text-white mb-6 leading-tight">${question}</p>
+                    <p class="text-lg font-bold text-gray-500 italic">"${starter}"</p>
+                </div>
+                ` : ''}
+            </div>
+        `);
+
+        // The Fixer (Email Correction)
+        function bFixerEmail(title, codeLines, expectedFixes) {
+            let expectedFixesCopy = [...expectedFixes]; 
+            let htmlLines = codeLines.map((line, i) => {
+                return line.replace(/\[(.*?)\]/g, (match, word) => {
+                    const fixData = expectedFixesCopy.shift() || {ans: word};
+                    return `<span class="bug-word" onclick="triggerFixer(this, '${esc(fixData.ans)}')">${word}</span>`;
+                });
+            }).join('<br><br>');
+
+            return step(TYPES.DRILL, title, `
+                <div class="max-w-4xl mx-auto w-full flex flex-col items-center py-10 animate-in fade-in">
+                    <p class="text-[10px] font-bold text-[var(--ted-red)] uppercase tracking-[0.4em] mb-4 bg-[var(--ted-red)]/10 px-4 py-1.5">Communication Error</p>
+                    <h2 class="text-4xl md:text-5xl font-black text-white tracking-tight mb-8 text-center">${title}</h2>
+                    <p class="text-gray-400 text-lg mb-12 text-center">Click the incorrect grammar (red words) and type the correct Past Modal form.</p>
+                    
+                    <div class="w-full exec-card relative overflow-hidden text-2xl leading-relaxed text-white border-t-4 border-[var(--ted-red)]">
+                        <div class="font-medium p-6">
+                            ${htmlLines}
+                        </div>
+                        
+                        <div id="fix-panel" class="absolute bottom-0 left-0 w-full bg-[#0A0A0A] border-t border-[var(--ted-red)] p-8 transform translate-y-full transition-transform duration-300 flex items-center gap-6 z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.8)]">
+                            <span class="text-[var(--ted-red)] font-bold text-xl">Correct form:</span>
+                            <input type="text" id="fix-input" class="bg-[#111] text-white border border-white/20 px-6 py-4 flex-1 text-xl focus:outline-none focus:border-[var(--ted-red)]" autocomplete="off" placeholder="Type answer...">
+                            <button onclick="submitFixer()" class="btn-red px-10 py-4 text-sm">APPLY</button>
+                        </div>
+                    </div>
+                    <div id="fixer-hub" class="hidden mt-10 text-[var(--ted-red)] font-bold text-xl bg-[var(--ted-red)]/10 p-6 border border-[var(--ted-red)]/20">Communication restored.</div>
+                </div>
+            `);
+        }
+
+        // Word Builder
+        function bWordBuilder(id, title, instruction, expectedArr) {
+            let wordBtns = shuffleArray([...expectedArr]).map(w => `<span class="wb-pill text-2xl" onclick="moveWbWord(this, '${esc(w)}', '${id}')">${w}</span>`).join('');
+            return step(TYPES.BUILDER, title, `
+                <div class="max-w-4xl mx-auto w-full flex flex-col items-center py-10 animate-in fade-in" data-expected='${JSON.stringify(expectedArr)}' id="wb-data-${id}">
+                    <p class="text-[10px] font-bold text-[var(--ted-red)] uppercase tracking-[0.4em] mb-4 bg-[var(--ted-red)]/10 px-4 py-1.5">Construction</p>
+                    <h2 class="text-4xl md:text-5xl font-black text-white tracking-tight mb-8 text-center">${title}</h2>
+                    <p class="text-gray-400 text-xl mb-12 text-center">${instruction}</p>
+                    
+                    <div class="w-full exec-card text-center pb-12 border-t-4 border-white">
+                        <div class="wb-dropzone text-2xl" id="wb-dropzone-${id}"></div>
+                        <div class="flex justify-center flex-wrap gap-4 mt-12" id="wb-bank-${id}">
+                            ${wordBtns}
+                        </div>
+                        <button onclick="resetWb('${id}')" class="mt-12 text-sm font-bold text-gray-500 hover:text-white uppercase tracking-widest transition"><i class="fas fa-undo mr-2"></i>Reset Sentence</button>
+                    </div>
+                    <div id="wb-fb-${id}" class="hidden mt-8 p-6 bg-white text-black font-bold text-xl rounded">Sentence constructed successfully.</div>
+                </div>
+            `);
+        }
+
+        // Fact Check (Bamboozle)
+        const bFactCheck = (title, statement1, statement2) => step(TYPES.STAND, title, `
+            <div class="max-w-5xl mx-auto w-full flex flex-col items-center py-10 animate-in fade-in">
+                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.4em] mb-6 border border-white/10 px-4 py-1.5 rounded-full">Analysis</p>
+                <h2 class="text-5xl font-black text-white tracking-tight mb-16 text-center">${title}</h2>
+                
+                <div id="bamb-q1" class="w-full max-w-4xl exec-card text-center mb-8 border-t-4 border-white">
+                    <p class="text-3xl font-bold text-white leading-relaxed mb-12">${statement1.text.replace(/\[(.*?)\]/g, '<span class="text-[var(--ted-red)]">$1</span>')}</p>
+                    <div class="flex gap-8 justify-center">
+                        <button class="btn-red px-12 py-4 text-lg" onclick="checkBamb(1, ${statement1.isTrue})">TRUE</button>
+                        <button class="btn-outline px-12 py-4 text-lg" onclick="checkBamb(1, ${!statement1.isTrue})">FALSE</button>
+                    </div>
+                </div>
+                
+                <div id="bamb-q2" class="hidden w-full max-w-4xl exec-card text-center mb-8 border-t-4 border-[var(--ted-red)]">
+                    <p class="text-3xl font-bold text-white leading-relaxed mb-12">${statement2.text.replace(/\[(.*?)\]/g, '<span class="text-[var(--ted-red)]">$1</span>')}</p>
+                    <div class="flex gap-8 justify-center">
+                        <button class="btn-red px-12 py-4 text-lg" onclick="checkBamb(2, ${statement2.isTrue})">TRUE</button>
+                        <button class="btn-outline px-12 py-4 text-lg" onclick="checkBamb(2, ${!statement2.isTrue})">FALSE</button>
+                    </div>
+                </div>
+                
+                <div id="bamb-fb" class="hidden mt-8 p-6 bg-[var(--ted-red)]/10 text-[var(--ted-red)] font-bold text-2xl text-center w-full max-w-4xl border border-[var(--ted-red)]/20">Analysis complete.</div>
+            </div>
+        `);
+
+        // Confession Room (Roleplay)
+        const bRoleplay = (title, prompt, bullets, starter) => step(TYPES.SPEAKING, title, `
+            <div class="max-w-5xl mx-auto w-full flex flex-col items-center justify-center min-h-[60vh] text-center animate-in fade-in py-10 relative">
+                
+                <div class="z-10 flex flex-col items-center w-full">
+                    <div class="flex items-center justify-center w-24 h-24 bg-[#111] border border-white/20 mb-8">
+                        <i class="fas fa-microphone text-4xl text-white"></i>
+                    </div>
+                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.4em] mb-4">Live Scenario</p>
+                    <h2 class="text-5xl md:text-6xl font-black tracking-tight text-white leading-tight mb-12">${prompt}</h2>
+                    
+                    ${bullets ? `<div class="flex flex-wrap justify-center gap-4 max-w-4xl mb-12">${bullets.map(b => `<span class="px-8 py-4 exec-card text-white font-bold text-xl border-l-2 border-[var(--ted-red)]">${b}</span>`).join('')}</div>` : ''}
+                    
+                    <div class="w-full max-w-3xl bg-[#111] p-8 border border-white/10 mt-4">
+                        <div class="flex justify-between items-center cursor-pointer" onclick="toggleStarter(this)">
+                            <div class="flex items-center gap-4">
+                                <i class="fas fa-lightbulb text-[var(--ted-red)] text-2xl"></i>
+                                <span class="text-white font-bold tracking-widest uppercase text-lg">Speaking Guide (Hints)</span>
+                            </div>
+                            <i class="fas fa-chevron-down text-white/50"></i>
+                        </div>
+                        <div class="starter-content text-left">
+                            <div class="bg-black p-8 border border-white/5 mt-6">
+                                <p class="text-2xl font-medium text-white leading-relaxed italic">"${starter}"</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `);
+
+        const bWrap = () => step(TYPES.WRAP, "Executive Summary", `
+            <div class="text-center max-w-3xl mx-auto flex flex-col items-center justify-center min-h-[60vh] animate-in fade-in">
+                <div class="w-48 h-48 bg-[var(--ted-red)] mx-auto flex items-center justify-center text-7xl text-white mb-12 shadow-[0_0_60px_rgba(230,43,30,0.3)]">
+                    <i class="fas fa-check"></i>
+                </div>
+                <h1 class="text-6xl md:text-8xl font-black text-white tracking-tighter mb-6 uppercase">Mastery Achieved</h1>
+                <p class="text-2xl text-gray-400 mb-16 font-medium">You have mastered the language of accountability and reflection.</p>
+                <button onclick="goHome()" class="btn-outline px-12 py-5 text-xl tracking-widest">End Session</button>
+            </div>
+        `);
+
+        // --- LESSON DATA (20 STEPS - B2 Executive Suite) ---
+        const lessonData = [
+            bGuide("The Hot Shot Rule", [
+                "Level: B1 / B2 (Intermediate to Advanced).", 
+                "Focus: Past Modals of Regret & Reflection (Should have / Could have / Would have).",
+                "Theme: Leadership, Accountability, and Action.",
+                "Goal: Discuss past mistakes and hypothetical improvements."
+            ]),
+            
+            bAccountabilityMirror("The Mirror", "When a project fails at work or school, what is your first instinct?", "🤷‍♂️ Make Excuses", "🎯 Take Accountability", "To be honest, my first instinct is usually to... because..."),
+
+            bExecVocab("Executive Verbs", [
+                {word: "Show up", def: "To arrive or be present, especially when it is difficult.", ex: "Good leaders show up in tough times.", q: "When is it most difficult to 'show up' at work?", starter: "I think it is hardest to show up when..."},
+                {word: "Cut through", def: "To deal quickly and effectively with a complex problem or excuses.", ex: "We need to cut through the complacency and act.", q: "What helps you cut through excuses?", starter: "To cut through excuses, I usually..."},
+                {word: "Put in motion", def: "To start a process or project.", ex: "I thought of the idea, and then I put it in motion.", q: "Have you put any new ideas in motion recently?", starter: "Yes, recently I put... in motion."},
+                {word: "Call out", def: "To draw critical attention to someone's unacceptable behavior (even your own).", ex: "My team knows I am constantly calling myself out.", q: "Is it hard to call yourself out?", starter: "Yes, it's hard because..."}
+            ]),
+
+            bAudioLog("The Origin", "lKsvLGdoIH8", null, 245, "Listen to Kat Cole (CEO of AG1). Pay attention to the story about her mother. Mission: What did she learn from her mother?"),
+
+            bSocialQuiz("comp1", "The Foundation", "What lesson did Kat learn from watching her mother leave her father?", [
+                "You need a lot of money to make changes.", 
+                "Taking action drives growth and improvement.", 
+                "You should wait for someone to mentor you."
+            ], 1, "Do you agree that taking action builds confidence?", "I agree/disagree because..."),
+
+            bLogicGrammar("Past Regret", "Use [Should have + Past Participle] to talk about mistakes in the past or things you regret not doing.", [
+                {text: "I [should have called] the client earlier.", context: "Regret (I didn't call him)"},
+                {text: "We [should have acted] faster.", context: "Mistake (We acted slowly)"}
+            ], "Think of a mistake you made this week. What should you have done?", "I know I should have..."),
+
+            bLogicGrammar("Missed Opportunities", "Use [Could have + Past Participle] to say you had the ability or opportunity to do something in the past, but you chose not to.", [
+                {text: "I [could have helped] you, but you didn't ask.", context: "Opportunity not taken"},
+                {text: "We [could have finished] yesterday.", context: "It was possible, but didn't happen"}
+            ], "Have you ever missed a good opportunity?", "Yes, once I could have... but I didn't."),
+
+            bAudioLog("The Rule", "lKsvLGdoIH8", 245, null, "Now listen to the actual 'Hot Shot Rule'. Mission: Listen for the final and most important step of the rule."),
+
+            bSocialQuiz("comp2", "The Process", "According to Kat Cole, what is the final step of the Hot Shot Rule after you take action?", [
+                "Thinking about someone you admire.", 
+                "Telling your team what you should have done differently.", 
+                "Writing it down in a journal."
+            ], 1, "Why is telling your team about your mistakes a superpower?", "I think it is a superpower because it shows..."),
+
+            bLogicGrammar("Past Hypotheses", "Use [Would have + Past Participle] to imagine a different result in the past if the circumstances were different.", [
+                {text: "I [would have finished], but my internet crashed.", context: "Explaining why something didn't happen"},
+                {text: "Someone I admire [would have done] it differently.", context: "Imagining a different reality"}
+            ], "If you had won the lottery yesterday, what would you have bought today?", "I would have bought..."),
+
+            bSocialQuiz("comp3", "Pronunciation Focus", "In spoken English, how do native speakers usually pronounce 'Should have'?", [
+                "Should of / Shoulda", 
+                "Should have (very clear)", 
+                "Should to"
+            ], 0, "Try pronouncing: 'I shoulda told you sooner.'", "(Practice pronunciation)"),
+
+            bWordBuilder("wb1", "Sentence Construction", "Click the blocks to build the accountability sentence.", ["I", "should", "have", "spoken", "up", "in", "the", "meeting"]),
+
+            bFixerEmail("The Apology Email", [
+                "Team, the project failed because of bad communication.",
+                "I [should to listen] to your warnings last week.",
+                "We [could finished] it on time, but I ignored the data.",
+                "A better leader [would had acted] faster. I am sorry."
+            ], [ {ans: "should have listened"}, {ans: "could have finished"}, {ans: "would have acted"} ]),
+
+            bFactCheck("Knowledge Verification", 
+                {text: "'I [could have] gone to the party.' means I went to the party.", isTrue: false}, 
+                {text: "After should/could/would have, we always use the [Past Participle] verb (e.g., done, seen, spoken).", isTrue: true}
+            ),
+
+            bRoleplay("The Confession Room 1", "You missed a very important deadline at work.", ["Own the mistake", "Use 'Should have'", "Promise action"], "I am sorry. I should have planned better. Next time I will..."),
+
+            bRoleplay("The Confession Room 2", "You bought a very expensive gadget that broke in one week.", ["Express regret", "Use 'Could have'", "What would you change?"], "I am so angry. I could have bought the cheaper one. I should have read the reviews!"),
+
+            bWordBuilder("wb2", "Sentence Construction 2", "Click the blocks to build the hypothetical sentence.", ["What", "would", "a", "great", "leader", "have", "done", "?"]),
+
+            bRoleplay("The 24h Challenge", "Apply the Hot Shot Rule to your life right now.", ["Think of someone you admire", "What would they do in your role?", "Use 'Would have' or 'Should have'"], "If [Person] were in my position, they would have... So today, I will..."),
+
+            bWrap()
+        ];
+
+        // --- LÓGICA DE RUNTIME ---
+        function toggleElementClass(id, action, className) {
+            const el = document.getElementById(id);
+            if (el) {
+                if (action === 'add') el.classList.add(className);
+                else if (action === 'remove') el.classList.remove(className);
+            }
+        }
+
+        function startMission() {
+            toggleElementClass('dashboard', 'add', 'hidden'); toggleElementClass('dashboard', 'remove', 'flex');
+            toggleElementClass('hud-top', 'remove', 'hidden'); toggleElementClass('hud-top', 'add', 'flex');
+            toggleElementClass('mission-arena', 'remove', 'hidden'); toggleElementClass('mission-arena', 'add', 'flex');
+            toggleElementClass('nav-console', 'remove', 'hidden'); toggleElementClass('nav-console', 'add', 'flex');
+            buildLessonNavigator(); renderStep();
+        }
+
+        function goHome() {
+            toggleElementClass('dashboard', 'remove', 'hidden'); toggleElementClass('dashboard', 'add', 'flex');
+            toggleElementClass('hud-top', 'add', 'hidden'); toggleElementClass('hud-top', 'remove', 'flex');
+            toggleElementClass('mission-arena', 'add', 'hidden'); toggleElementClass('mission-arena', 'remove', 'flex');
+            toggleElementClass('nav-console', 'add', 'hidden'); toggleElementClass('nav-console', 'remove', 'flex');
+            state.current = 0; updateHUD();
+            document.getElementById('whiteboard')?.classList.remove('active');
+            document.getElementById('lesson-navigator')?.classList.remove('active');
+            document.getElementById('teacher-hud')?.classList.remove('active');
+        }
+
+        function renderStep() {
+            if (!lessonData || !lessonData[state.current]) return;
+            const step = lessonData[state.current];
+            const pTitle = document.getElementById('console-title'); if(pTitle) pTitle.innerText = step.title;
+            const content = document.getElementById('mission-content'); if(content) content.innerHTML = `<div class="w-full max-w-7xl mx-auto">${step.html}</div>`;
+            updateHUD();
+            
+            const navList = document.getElementById('nav-steps-list');
+            if (navList) {
+                Array.from(navList.children).forEach((btn, i) => {
+                    if(i === state.current) { btn.classList.add('bg-[var(--ted-red)]/20', 'text-[var(--ted-red)]', 'border-l-4', 'border-[var(--ted-red)]'); btn.classList.remove('text-[#888]'); } 
+                    else { btn.classList.remove('bg-[var(--ted-red)]/20', 'text-[var(--ted-red)]', 'border-l-4', 'border-[var(--ted-red)]'); btn.classList.add('text-[#888]'); }
+                });
+            }
+            if (step.type === TYPES.BUILDER) setTimeout(setupWb, 100);
+        }
+
+        function nextStep() { if (state.current < lessonData.length - 1) { state.current++; renderStep(); } else { goHome(); } }
+        function prevStep() { if (state.current > 0) { state.current--; renderStep(); } }
+        
+        function toggleWhiteboard() { document.getElementById('whiteboard').classList.toggle('active'); document.getElementById('lesson-navigator')?.classList.remove('active'); document.getElementById('teacher-hud')?.classList.remove('active'); }
+        function toggleLessonNavigator() { document.getElementById('lesson-navigator').classList.toggle('active'); document.getElementById('whiteboard')?.classList.remove('active'); document.getElementById('teacher-hud')?.classList.remove('active'); }
+        function toggleTeacherHUD() { document.getElementById('teacher-hud').classList.toggle('active'); document.getElementById('whiteboard')?.classList.remove('active'); document.getElementById('lesson-navigator')?.classList.remove('active'); }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(err => console.log(err)); } 
+            else { if (document.exitFullscreen) document.exitFullscreen(); }
+        }
+
+        function toggleStarter(btn) {
+            const content = btn.nextElementSibling;
+            if (content.classList.contains('open')) { content.classList.remove('open'); } else { content.classList.add('open'); }
+        }
+
+        // --- LÓGICA DOS MINIJOGOS ---
+
+        // MCQ (General)
+        function handleQuizTrial(id, row, isCorrect, followup, starter) {
+            if(row.classList.contains('locked-check')) {
+                const parent = row.parentElement; 
+                Array.from(parent.children).forEach(child => { child.onclick = null; child.classList.add('opacity-40', 'cursor-default'); child.classList.remove('locked-check');});
+                row.classList.remove('opacity-40'); 
+                
+                if(isCorrect) {
+                    row.classList.add('correct'); updateHUD(); shootConfetti();
+                    const fBox = document.getElementById(`followup-box-${id}`); if(fBox) fBox.classList.remove('hidden');
+                } else { row.classList.add('wrong'); updateHUD(); }
+            }
+        }
+
+        // Word Builder
+        let wbState = {};
+        function setupWb() {
+            document.querySelectorAll('[id^="wb-data-"]').forEach(el => {
+                const id = el.id.replace('wb-data-', '');
+                wbState[id] = { current: [], expected: JSON.parse(el.dataset.expected) };
+            });
+        }
+        function moveWbWord(pill, word, id) {
+            if(pill.classList.contains('used')) return;
+            if(!wbState[id]) return;
+            wbState[id].current.push(word); pill.classList.add('used');
+            const dz = document.getElementById(`wb-dropzone-${id}`);
+            const newPill = document.createElement('span'); newPill.className = 'pill-in-zone'; newPill.innerText = word; dz.appendChild(newPill);
+            if(wbState[id].current.length === wbState[id].expected.length) {
+                let win = wbState[id].current.every((val, index) => val === wbState[id].expected[index]);
+                if(win) { document.getElementById(`wb-fb-${id}`).classList.remove('hidden'); updateHUD(); shootConfetti(); }
+                else { dz.classList.add('shake', 'border-[var(--ted-red)]'); setTimeout(() => dz.classList.remove('shake', 'border-[var(--ted-red)]'), 400); }
+            }
+        }
+        function resetWb(id) {
+            if(!wbState[id]) return;
+            wbState[id].current = []; document.getElementById(`wb-dropzone-${id}`).innerHTML = ''; document.getElementById(`wb-fb-${id}`).classList.add('hidden');
+            document.getElementById(`wb-bank-${id}`).querySelectorAll('.wb-pill').forEach(p => p.classList.remove('used'));
+        }
+
+        // The Fixer (Email Correction)
+        let activeBug = null; let expectedFix = ""; let bugsFixed = 0;
+        function triggerFixer(el, answer) {
+            if(el.classList.contains('bug-fixed')) return;
+            activeBug = el; expectedFix = answer;
+            const panel = document.getElementById('fix-panel'); panel.classList.remove('translate-y-full');
+            document.getElementById('fix-input').value = ''; document.getElementById('fix-input').focus();
+        }
+        function submitFixer() {
+            const input = document.getElementById('fix-input').value.trim().toLowerCase();
+            const panel = document.getElementById('fix-panel');
+            if(input === expectedFix.toLowerCase()) {
+                activeBug.innerText = expectedFix; activeBug.classList.remove('bug-word'); activeBug.classList.add('bug-fixed');
+                panel.classList.add('translate-y-full');
+                const container = activeBug.closest('.exec-card');
+                const remaining = container.querySelectorAll('.bug-word').length;
+                if(remaining === 0) { shootConfetti(); updateHUD(); document.getElementById('fixer-hub').classList.remove('hidden');}
+            } else {
+                const inputEl = document.getElementById('fix-input'); inputEl.classList.add('shake', 'border-[var(--ted-red)]');
+                setTimeout(() => inputEl.classList.remove('shake', 'border-[var(--ted-red)]'), 400);
+            }
+        }
+        document.getElementById('fix-input')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') submitFixer(); });
+
+        // Bamboozle
+        function checkBamb(q, isCorrect) {
+            const container = document.getElementById(`bamb-q${q}`);
+            if(isCorrect) {
+                container.classList.add('hidden');
+                if(q === 1) document.getElementById('bamb-q2').classList.remove('hidden');
+                else { document.getElementById('bamb-fb').classList.remove('hidden'); shootConfetti(); }
+            } else {
+                container.classList.add('shake', 'border-4', 'border-[var(--ted-red)]');
+                setTimeout(() => container.classList.remove('shake', 'border-4', 'border-[var(--ted-red)]'), 400);
+            }
+        }
+
+        function shuffleArray(array) {
+            let curId = array.length;
+            while (0 !== curId) {
+                let randId = Math.floor(Math.random() * curId); curId -= 1;
+                let tmp = array[curId]; array[curId] = array[randId]; array[randId] = tmp;
+            }
+            return array;
+        }
+
+        function buildLessonNavigator() {
+            const list = document.getElementById('nav-steps-list'); if (!list) return;
+            list.innerHTML = '';
+            lessonData.forEach((step, i) => {
+                const btn = document.createElement('button');
+                btn.className = `w-full text-left p-3 rounded flex items-center gap-3 transition-all ${i === state.current ? 'bg-[var(--ted-red)]/20 text-[var(--ted-red)] font-bold border-l-4 border-[var(--ted-red)]' : 'text-[#888] hover:bg-white/5'}`;
+                btn.innerHTML = `<span class="text-xs w-4 opacity-50 font-bold">${i+1}</span><div class="flex flex-col truncate"><span class="text-sm truncate">${step.title}</span></div>`;
+                btn.onclick = () => { state.current = i; renderStep(); toggleLessonNavigator(); };
+                list.appendChild(btn);
+            });
+        }
+
+        function triggerPraise(main, sub) {
+            document.getElementById('teacher-hud')?.classList.remove('active'); 
+            const overlay = document.getElementById('praise-overlay'); const card = document.getElementById('praise-card');
+            
+            document.getElementById('praise-main').innerText = main; document.getElementById('praise-sub').innerText = sub;
+            overlay.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => card.classList.replace('scale-50', 'scale-100'), 50); shootConfetti();
+            setTimeout(() => { card.classList.replace('scale-100', 'scale-50'); overlay.classList.add('opacity-0', 'pointer-events-none'); }, 2500);
+        }
+
+        function shootConfetti() {
+            const cCanvas = document.getElementById('confetti-canvas'); const cCtx = cCanvas.getContext('2d');
+            cCanvas.width = window.innerWidth; cCanvas.height = window.innerHeight;
+            const pieces = []; const colors = ['#E62B1E', '#FFFFFF', '#1A1A1A'];
+            for(let i=0; i<80; i++) pieces.push({ x: cCanvas.width/2, y: cCanvas.height/2+100, vx: (Math.random()-0.5)*20, vy: (Math.random()-1)*20-5, size: Math.random()*8+4, color: colors[Math.floor(Math.random()*colors.length)], rot: Math.random()*360, rotSpeed: (Math.random()-0.5)*10 });
+            let animationId;
+            function animateC() {
+                cCtx.clearRect(0, 0, cCanvas.width, cCanvas.height); let active = false;
+                pieces.forEach(p => {
+                    p.x += p.vx; p.y += p.vy; p.vy += 0.5; p.rot += p.rotSpeed; if(p.y < cCanvas.height) active = true;
+                    cCtx.save(); cCtx.translate(p.x, p.y); cCtx.rotate(p.rot*Math.PI/180); cCtx.fillStyle = p.color; 
+                    // Square confetti for formal look
+                    cCtx.fillRect(-p.size/2, -p.size/2, p.size, p.size); cCtx.restore();
+                });
+                if(active) animationId = requestAnimationFrame(animateC); else cCtx.clearRect(0, 0, cCanvas.width, cCanvas.height);
+            }
+            animateC();
+        }
+
+        function updateHUD() {
+            const prog = document.getElementById('progress-bar');
+            if(prog) {
+                const perc = ((state.current + 1) / lessonData.length) * 100;
+                prog.style.width = `${perc}%`;
+            }
+        }
+
+        function insertTag(tag) { 
+            const text = document.getElementById('wb-text'); 
+            if (text) { text.value += (text.value.length > 0 ? '\n' : '') + tag + ' '; text.focus(); } 
+        }
+        
+        window.onload = () => { updateHUD(); buildLessonNavigator(); goHome(); };
+    </script>
+</body>
+</html>
